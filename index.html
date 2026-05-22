@@ -876,8 +876,8 @@ document.getElementById('sheet-overlay').addEventListener('click',()=>{
 // ── RECURRING INCOME HELPERS ──
 const FREQ_LABEL={weekly:'Weekly',biweekly:'Bi-weekly',monthly:'Monthly'};
 function monthlyEquiv(r){
-  if(r.frequency==='weekly')return r.amount*4.33;
-  if(r.frequency==='biweekly')return r.amount*2.17;
+  if(r.frequency==='weekly')return r.amount*4;
+  if(r.frequency==='biweekly')return r.amount*2;
   return r.amount;
 }
 function totalMonthlyRecurring(){
