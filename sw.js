@@ -1,4 +1,4 @@
-const CACHE = 'money-v8';
+const CACHE = 'money-v9';
 const ASSETS = ['./index.html', './manifest.json', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

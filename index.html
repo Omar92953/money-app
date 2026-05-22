@@ -80,8 +80,7 @@ a{color:inherit;text-decoration:none;}
   height:calc(49px + env(safe-area-inset-bottom,20px));
   padding-bottom:env(safe-area-inset-bottom,20px);
   display:flex;align-items:flex-start;padding-top:8px;
-  background:var(--bg);
-  border-top:1px solid var(--sep-o);
+  background:#F6F6F1;
   z-index:100;
 }
 .tab-btn{
@@ -1103,15 +1102,17 @@ async function saveTx(){
   }else{
     Store.data.transactions.push({id:uid(),type,amount:amt,category:cat,note,date});
   }
-  await Store.save();closeSheet('sheet-tx');
+  closeSheet('sheet-tx');
   toast(_editTx?'Transaction updated':'Transaction added');
   _editTx=null;renderTx();
   if(_tab==='overview')renderOverview();
+  Store.save();
 }
 async function deleteTx(id){
   Store.data.transactions=Store.data.transactions.filter(t=>t.id!==id);
-  await Store.save();toast('Deleted');renderTx();
+  toast('Deleted');renderTx();
   if(_tab==='overview')renderOverview();
+  Store.save();
 }
 
 // ── GOALS ──
@@ -1198,10 +1199,11 @@ async function saveGoal(){
   }else{
     Store.data.goals.push({id:uid(),name,targetAmount:amt,deadline:dl,createdAt:today()});
   }
-  await Store.save();closeSheet('sheet-goal');
+  closeSheet('sheet-goal');
   toast(_editGoal?'Goal updated':'Goal created');
   _editGoal=null;renderGoals();
   if(_tab==='overview')renderOverview();
+  Store.save();
 }
 
 function openGoalDetail(id){
@@ -1292,12 +1294,14 @@ async function saveContrib(){
   const note=document.getElementById('co-note').value.trim();
   const date=document.getElementById('co-date').value||today();
   Store.data.contributions.push({id:uid(),goalId:_cgid,amount:amt,note,date});
-  await Store.save();closeSheet('sheet-contrib');toast('Contribution added');
+  closeSheet('sheet-contrib');toast('Contribution added');
   renderGD();renderGoals();if(_tab==='overview')renderOverview();
+  Store.save();
 }
-async function delContrib(id){
+function delContrib(id){
   Store.data.contributions=Store.data.contributions.filter(c=>c.id!==id);
-  await Store.save();toast('Removed');renderGD();renderGoals();
+  toast('Removed');renderGD();renderGoals();
+  Store.save();
 }
 
 // ── ANALYTICS ──
@@ -1501,7 +1505,7 @@ async function addCat(){
   if(!n){toast('Enter a category name');return;}
   if(Store.data.categories[_catType].includes(n)){toast('Category already exists');return;}
   Store.data.categories[_catType].push(n);
-  await Store.save();closeSheet('sheet-cat');toast('Category added');renderSettings();
+  closeSheet('sheet-cat');toast('Category added');renderSettings();Store.save();
 }
 
 function openAddCatInTx(type){
@@ -1522,7 +1526,7 @@ function openAddCatInTx(type){
 async function addCatInTx(type){
   const n=document.getElementById('cat-ni').value.trim();
   if(!n){toast('Enter a category name');return;}
-  if(!Store.data.categories[type].includes(n)){Store.data.categories[type].push(n);await Store.save();}
+  if(!Store.data.categories[type].includes(n)){Store.data.categories[type].push(n);Store.save();}
   closeSheet('sheet-cat');
   // Re-render only the chips section
   _txCats=[...Store.data.categories[type]];
@@ -1631,17 +1635,21 @@ async function saveRecurring(){
   }else{
     Store.data.recurring.push({id:uid(),...entry,lastAdded:null});
   }
-  await Store.save();closeSheet('sheet-recur');
+  closeSheet('sheet-recur');
   toast(_editRec?'Updated':'Recurring income added');
   _editRec=null;renderSettings();
   if(_tab==='overview')renderOverview();
+  if(_tab==='transactions')renderTx();
+  Store.save();
 }
-async function deleteRecurring(id){
+function deleteRecurring(id){
   if(!confirm('Remove this recurring income source?'))return;
   Store.data.recurring=Store.data.recurring.filter(r=>r.id!==id);
-  await Store.save();closeSheet('sheet-recur');
+  closeSheet('sheet-recur');
   toast('Removed');renderSettings();
   if(_tab==='overview')renderOverview();
+  if(_tab==='transactions')renderTx();
+  Store.save();
 }
 
 // ── AUTO-ADD RECURRING ON APP OPEN ──
