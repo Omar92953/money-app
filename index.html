@@ -87,12 +87,22 @@ a{color:inherit;text-decoration:none;}
   z-index:100;
 }
 .tab-btn{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
   padding:0;color:var(--label-3);font-size:10px;font-weight:500;letter-spacing:.01em;
-  transition:color .15s;-webkit-tap-highlight-color:transparent;
+  transition:color .2s;-webkit-tap-highlight-color:transparent;
 }
-.tab-btn.active{color:var(--label);}
+.tab-btn.active{color:var(--label);font-weight:600;}
 .tab-btn svg{display:block;}
+.tab-icon-wrap{
+  width:36px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:10px;
+  transition:background .2s, transform .15s cubic-bezier(.34,1.56,.64,1);
+}
+.tab-icon-wrap.active{
+  background:rgba(26,26,26,.08);
+  transform:scale(1.08);
+}
 
 /* ── FAB ── */
 #fab{
@@ -732,16 +742,36 @@ document.getElementById('ob-name').addEventListener('keydown',e=>{if(e.key==='En
 
 // ── NAVIGATION ──
 const TABS=['overview','transactions','goals','analytics','settings'];
-const TAB_IC={overview:'home',transactions:'list',goals:'flag',analytics:'chart',settings:'cog'};
 const TAB_LB={overview:'Overview',transactions:'Wallet',goals:'Goals',analytics:'Trends',settings:'Settings'};
 let _tab='overview';
 
+// Outline icons (inactive state)
+const IC_L={
+  overview:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11L12 4l9 7v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22v-6h6v6"/></svg>`,
+  transactions:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 11h20"/><line x1="6" y1="16" x2="10" y2="16"/></svg>`,
+  goals:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`,
+  analytics:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="14" width="4" height="8" rx="1"/><rect x="10" y="9" width="4" height="13" rx="1"/><rect x="18" y="4" width="4" height="18" rx="1"/></svg>`,
+  settings:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06-.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>`,
+};
+
+// Filled icons (active state)
+const IC_F={
+  overview:`<svg viewBox="0 0 24 24"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>`,
+  transactions:`<svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 6H4C2.9 6 2 6.9 2 8v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 5H4V8h16v3zm-4 5.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z"/></svg>`,
+  goals:`<svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 1v21h1.5V15.3c.7-.2 1.7-.3 2.5-.3 1.6 0 3.3.7 5 1.4 1.5.6 3 1.3 4.5 1.3.9 0 1.9-.2 3-.6V2.7c-1.1.4-2 .6-3 .6-1.5 0-3-.7-4.5-1.4C11.4 1.2 9.7.5 8 .5c-1.5 0-2.8.2-4 .5z"/></svg>`,
+  analytics:`<svg viewBox="0 0 24 24"><rect fill="currentColor" x="2" y="14" width="4" height="8" rx="1"/><rect fill="currentColor" x="10" y="9" width="4" height="13" rx="1"/><rect fill="currentColor" x="18" y="4" width="4" height="18" rx="1"/></svg>`,
+  settings:`<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 15.5a3.5 3.5 0 110-7 3.5 3.5 0 010 7m7.43-2.92c.04-.36.07-.72.07-1.08 0-.36-.03-.73-.07-1.08l2.3-1.8a.55.55 0 00.13-.7l-2.2-3.8a.55.55 0 00-.67-.24l-2.71 1.09c-.57-.44-1.17-.81-1.83-1.08l-.42-2.9a.55.55 0 00-.54-.49H9.36a.55.55 0 00-.54.5L8.4 5.39c-.66.27-1.26.64-1.83 1.08L4.37 5.38a.55.55 0 00-.67.24l-2.2 3.8a.55.55 0 00.13.7l2.3 1.8C3.9 12.28 3.87 12.64 3.87 13s.03.72.07 1.08l-2.3 1.8a.55.55 0 00-.13.7l2.2 3.8a.55.55 0 00.67.24l2.71-1.09c.57.44 1.17.81 1.83 1.08l.42 2.89a.55.55 0 00.54.5h4.4a.55.55 0 00.54-.5l.42-2.89c.66-.27 1.26-.64 1.83-1.08l2.71 1.09a.55.55 0 00.67-.24l2.2-3.8a.55.55 0 00-.13-.7l-2.3-1.8z"/></svg>`,
+};
+
 function buildTabBar(){
-  document.getElementById('tab-bar').innerHTML=TABS.map(t=>
-    `<button class="tab-btn${t===_tab?' active':''}" id="tb-${t}" onclick="showTab('${t}')">
-      ${ic(TAB_IC[t],22)}<span>${TAB_LB[t]}</span>
-    </button>`
-  ).join('');
+  document.getElementById('tab-bar').innerHTML=TABS.map(t=>{
+    const isA=t===_tab;
+    const svg=(isA?IC_F[t]:IC_L[t]).replace('<svg ',`<svg width="23" height="23" `);
+    return`<button class="tab-btn${isA?' active':''}" id="tb-${t}" onclick="showTab('${t}')">
+      <div class="tab-icon-wrap${isA?' active':''}">${svg}</div>
+      <span>${TAB_LB[t]}</span>
+    </button>`;
+  }).join('');
 }
 
 function showTab(t){
@@ -749,8 +779,8 @@ function showTab(t){
   TABS.forEach(x=>{
     document.getElementById('page-'+x).classList.toggle('active',x===t);
     const h=document.getElementById('hdr-'+x);if(h)h.classList.toggle('active',x===t);
-    const b=document.getElementById('tb-'+x);if(b)b.classList.toggle('active',x===t);
   });
+  buildTabBar();
   document.getElementById('fab').classList.toggle('hidden',t!=='transactions');
   if(t==='overview')renderOverview();
   else if(t==='transactions')renderTx();
