@@ -217,6 +217,9 @@ textarea.form-input{height:72px;padding:12px 14px;resize:none;line-height:1.5;}
   transition:all .15s;-webkit-tap-highlight-color:transparent;
 }
 .seg-btn.active{background:var(--bg-2);color:var(--label);box-shadow:0 1px 4px rgba(0,0,0,.08);}
+.dow-picker{display:flex;gap:6px;}
+.dow-btn{flex:1;padding:8px 2px;border-radius:8px;font-size:13px;font-weight:500;background:var(--bg-3);color:var(--label-2);transition:all .15s;-webkit-tap-highlight-color:transparent;}
+.dow-btn.active{background:var(--tint);color:var(--bg);}
 
 /* ── CHIPS ── */
 .chips{display:flex;flex-wrap:wrap;gap:8px;}
@@ -1397,14 +1400,14 @@ function renderSettings(){
     </div>
     <div class="sec-title">Income Categories</div>
     <div class="ig-list" style="padding:0">
-      ${inc.map(c=>`<div class="cat-row"><div class="cat-name">${esc(c)}</div>${!BI_INC.has(c)?`<button class="cat-del" data-t="income" data-n="${esc(c)}" onclick="delCat(this)">${ic('trash',15)}</button>`:''}</div>`).join('')}
+      ${inc.map(c=>`<div class="cat-row"><div class="cat-name" style="cursor:pointer" onclick="renameCat('income','${esc(c)}')">${esc(c)}</div><div style="display:flex;gap:8px;align-items:center"><button class="cat-del" style="color:var(--label-3)" data-t="income" data-n="${esc(c)}" onclick="renameCat('income','${esc(c)}')">${ic('edit',15)}</button><button class="cat-del" data-t="income" data-n="${esc(c)}" onclick="delCat(this)">${ic('trash',15)}</button></div></div>`).join('')}
       <div class="cat-row" style="cursor:pointer" onclick="openAddCat('income')">
         <div class="cat-name" style="color:var(--label-2);display:flex;align-items:center;gap:6px">${ic('plus',14)} Add category</div>
       </div>
     </div>
     <div class="sec-title">Expense Categories</div>
     <div class="ig-list" style="padding:0">
-      ${exp.map(c=>`<div class="cat-row"><div class="cat-name">${esc(c)}</div>${!BI_EXP.has(c)?`<button class="cat-del" data-t="expense" data-n="${esc(c)}" onclick="delCat(this)">${ic('trash',15)}</button>`:''}</div>`).join('')}
+      ${exp.map(c=>`<div class="cat-row"><div class="cat-name" style="cursor:pointer" onclick="renameCat('expense','${esc(c)}')">${esc(c)}</div><div style="display:flex;gap:8px;align-items:center"><button class="cat-del" style="color:var(--label-3)" data-t="expense" data-n="${esc(c)}" onclick="renameCat('expense','${esc(c)}')">${ic('edit',15)}</button><button class="cat-del" data-t="expense" data-n="${esc(c)}" onclick="delCat(this)">${ic('trash',15)}</button></div></div>`).join('')}
       <div class="cat-row" style="cursor:pointer" onclick="openAddCat('expense')">
         <div class="cat-name" style="color:var(--label-2);display:flex;align-items:center;gap:6px">${ic('plus',14)} Add category</div>
       </div>
@@ -1431,9 +1434,22 @@ function editName(){
 
 function delCat(btn){
   const t=btn.dataset.t,n=btn.dataset.n;
-  if((t==='income'&&BI_INC.has(n))||(t==='expense'&&BI_EXP.has(n))){toast("Can't delete built-in categories");return;}
+  if(!confirm(`Delete "${n}"?`))return;
   Store.data.categories[t]=Store.data.categories[t].filter(c=>c!==n);
   Store.save();renderSettings();toast('Category removed');
+}
+function renameCat(type,oldName){
+  const newName=prompt(`Rename "${oldName}"`,oldName);
+  if(!newName||!newName.trim()||newName.trim()===oldName)return;
+  const n=newName.trim();
+  const cats=Store.data.categories[type];
+  if(cats.includes(n)){toast('That name already exists');return;}
+  const idx=cats.indexOf(oldName);
+  if(idx<0)return;
+  cats[idx]=n;
+  // update existing transactions
+  Store.data.transactions.forEach(tx=>{if(tx.type===type&&tx.category===oldName)tx.category=n;});
+  Store.save();renderSettings();toast('Category renamed');
 }
 
 let _catType='expense';
@@ -1490,10 +1506,30 @@ async function addCatInTx(type){
 }
 
 // ── RECURRING INCOME ──
+const DOW_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 let _editRec=null;
+
+function _recurDayPickersHtml(freq, ex){
+  const curDow=ex?.dayOfWeek??1;
+  const curDom=ex?.dayOfMonth??1;
+  const showDow=(freq==='weekly'||freq==='biweekly');
+  const showDom=(freq==='monthly');
+  const dowHtml=`<div class="form-group" id="rec-dow-wrap" style="display:${showDow?'block':'none'}">
+    <label class="form-label">Day of week</label>
+    <div class="dow-picker">${DOW_NAMES.map((d,i)=>`<button class="dow-btn${i===curDow?' active':''}" data-dow="${i}" onclick="selDow(this)">${d}</button>`).join('')}</div>
+  </div>`;
+  const domOpts=Array.from({length:31},(_,i)=>`<option value="${i+1}"${(i+1)===curDom?' selected':''}>${i+1}</option>`).join('');
+  const domHtml=`<div class="form-group" id="rec-dom-wrap" style="display:${showDom?'block':'none'}">
+    <label class="form-label">Day of month</label>
+    <select id="rec-dom" class="form-input">${domOpts}</select>
+  </div>`;
+  return dowHtml+domHtml;
+}
+
 function openAddRecurring(editId){
   _editRec=editId||null;
   const ex=editId?Store.data.recurring.find(r=>r.id===editId):null;
+  const initFreq=ex?.frequency||'monthly';
   document.getElementById('srec-title').textContent=editId?'Edit Recurring':'Add Recurring Income';
   document.getElementById('srec-body').innerHTML=`
     <div class="form-group">
@@ -1509,11 +1545,12 @@ function openAddRecurring(editId){
     <div class="form-group">
       <label class="form-label">Frequency</label>
       <div class="seg" style="margin-bottom:0">
-        <button class="seg-btn${(!ex||ex.frequency==='monthly')?' active':''}" data-f="monthly" onclick="selFreq(this)">Monthly</button>
-        <button class="seg-btn${ex?.frequency==='biweekly'?' active':''}" data-f="biweekly" onclick="selFreq(this)">Bi-weekly</button>
-        <button class="seg-btn${ex?.frequency==='weekly'?' active':''}" data-f="weekly" onclick="selFreq(this)">Weekly</button>
+        <button class="seg-btn${initFreq==='monthly'?' active':''}" data-f="monthly" onclick="selFreq(this)">Monthly</button>
+        <button class="seg-btn${initFreq==='biweekly'?' active':''}" data-f="biweekly" onclick="selFreq(this)">Bi-weekly</button>
+        <button class="seg-btn${initFreq==='weekly'?' active':''}" data-f="weekly" onclick="selFreq(this)">Weekly</button>
       </div>
     </div>
+    ${_recurDayPickersHtml(initFreq,ex)}
     <div style="height:16px"></div>
     <button class="btn-primary" onclick="saveRecurring()">${editId?'Save Changes':'Add Income Source'}</button>
     ${editId?`<button class="btn-secondary" style="width:100%;margin-top:10px;justify-content:center;color:var(--red)" onclick="deleteRecurring('${editId}')">Delete</button>`:''}
@@ -1525,10 +1562,26 @@ function openAddRecurring(editId){
 function selFreq(btn){
   document.querySelectorAll('#srec-body .seg-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  const f=btn.dataset.f;
+  const dw=document.getElementById('rec-dow-wrap');
+  const dm=document.getElementById('rec-dom-wrap');
+  if(dw)dw.style.display=(f==='weekly'||f==='biweekly')?'block':'none';
+  if(dm)dm.style.display=f==='monthly'?'block':'none';
+}
+function selDow(btn){
+  document.querySelectorAll('#srec-body .dow-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
 }
 function getFreq(){
   const a=document.querySelector('#srec-body .seg-btn.active');
   return a?a.dataset.f:'monthly';
+}
+function getDow(){
+  const a=document.querySelector('#srec-body .dow-btn.active');
+  return a?parseInt(a.dataset.dow):1;
+}
+function getDom(){
+  return parseInt(document.getElementById('rec-dom')?.value||'1');
 }
 async function saveRecurring(){
   const name=document.getElementById('rec-name').value.trim();
@@ -1536,11 +1589,19 @@ async function saveRecurring(){
   if(!name){toast('Please enter a name');return;}
   if(!amt||amt<=0){toast('Please enter an amount');return;}
   const frequency=getFreq();
+  const dayOfWeek=(frequency==='weekly'||frequency==='biweekly')?getDow():undefined;
+  const dayOfMonth=frequency==='monthly'?getDom():undefined;
+  const entry={name,amount:amt,frequency,dayOfWeek,dayOfMonth};
   if(_editRec){
     const i=Store.data.recurring.findIndex(r=>r.id===_editRec);
-    if(i>=0)Store.data.recurring[i]={...Store.data.recurring[i],name,amount:amt,frequency};
+    if(i>=0){
+      const prev=Store.data.recurring[i];
+      Store.data.recurring[i]={...prev,...entry};
+      // reset lastAdded if day changed so it re-triggers on correct day
+      if(prev.dayOfWeek!==dayOfWeek||prev.dayOfMonth!==dayOfMonth) Store.data.recurring[i].lastAdded=null;
+    }
   }else{
-    Store.data.recurring.push({id:uid(),name,amount:amt,frequency});
+    Store.data.recurring.push({id:uid(),...entry,lastAdded:null});
   }
   await Store.save();closeSheet('sheet-recur');
   toast(_editRec?'Updated':'Recurring income added');
@@ -1553,6 +1614,43 @@ async function deleteRecurring(id){
   await Store.save();closeSheet('sheet-recur');
   toast('Removed');renderSettings();
   if(_tab==='overview')renderOverview();
+}
+
+// ── AUTO-ADD RECURRING ON APP OPEN ──
+function _isDueToday(r,today){
+  const dow=today.getDay();
+  const dom=today.getDate();
+  if(r.frequency==='monthly'){
+    return r.dayOfMonth===dom;
+  }
+  if(r.frequency==='weekly'){
+    if(r.dayOfWeek==null)return false;
+    return r.dayOfWeek===dow;
+  }
+  if(r.frequency==='biweekly'){
+    if(r.dayOfWeek==null||r.dayOfWeek!==dow)return false;
+    if(!r.lastAdded)return true;
+    const last=new Date(r.lastAdded);last.setHours(0,0,0,0);
+    const diff=Math.round((today-last)/(86400000));
+    return diff>=14;
+  }
+  return false;
+}
+function processRecurring(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayStr=today.toISOString().slice(0,10);
+  let added=0;
+  for(const r of(Store.data.recurring||[])){
+    if(r.lastAdded===todayStr)continue;
+    if(!_isDueToday(r,today))continue;
+    Store.data.transactions.push({id:uid(),type:'income',amount:r.amount,category:'Recurring',note:r.name,date:todayStr});
+    r.lastAdded=todayStr;
+    added++;
+  }
+  if(added){
+    Store.save();
+    toast(`${added} recurring income${added>1?'s':''} added to wallet`);
+  }
 }
 
 // ── UPDATES ──
@@ -1585,6 +1683,7 @@ async function init(){
   }else{
     document.getElementById('onboarding').style.display='none';
     document.getElementById('app').style.display='block';
+    processRecurring();
     showTab('overview');
   }
 }
