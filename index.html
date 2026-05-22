@@ -6,24 +6,32 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Money">
-<meta name="theme-color" content="#F6F6F1">
-<meta name="theme-color" content="#F6F6F1" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#F6F6F1" media="(prefers-color-scheme: dark)">
-<meta name="background-color" content="#F6F6F1">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: dark)">
+<meta name="background-color" content="#FFFFFF">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <title>Money</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;overflow:hidden;background:#F6F6F1;}
-/* Force-paint the iOS home-indicator zone with our color — iOS otherwise uses the cached install-time theme-color */
+html,body{height:100%;overflow:hidden;background:#FFFFFF;}
+/* Force all fixed elements onto identical compositing layers — fixes iOS sub-pixel render differences between layers */
 body::after{
   content:'';
   position:fixed;left:0;right:0;bottom:0;
   height:env(safe-area-inset-bottom,0px);
-  background:#F6F6F1;
+  background:#FFFFFF;
   z-index:200;
   pointer-events:none;
+  transform:translateZ(0);
+  -webkit-transform:translateZ(0);
+}
+#app,.page,#tab-bar,.page-hdr{
+  -webkit-transform:translateZ(0);
+  transform:translateZ(0);
+  -webkit-backface-visibility:hidden;
+  backface-visibility:hidden;
 }
 body{
   font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
@@ -39,15 +47,15 @@ a{color:inherit;text-decoration:none;}
 *{word-break:break-word;overflow-wrap:break-word;}
 
 :root{
-  --bg:#F6F6F1;
+  --bg:#FFFFFF;
   --bg-2:#FFFFFF;
-  --bg-3:#EFEFEA;
-  --bg-4:#E5E5E0;
+  --bg-3:#F5F5F5;
+  --bg-4:#ECECEC;
   --label:#1A1A1A;
   --label-2:rgba(26,26,26,.55);
   --label-3:rgba(26,26,26,.30);
   --sep:rgba(26,26,26,.09);
-  --sep-o:#E0E0DA;
+  --sep-o:#E5E5E5;
   --tint:#1A1A1A;
   --tint-dim:rgba(26,26,26,.07);
   --green:#1D7A4F;
@@ -75,7 +83,7 @@ a{color:inherit;text-decoration:none;}
   padding-top:calc(env(safe-area-inset-top,20px) + 10px);
   padding-bottom:10px;
   padding-left:20px;padding-right:12px;
-  background:#F6F6F1;
+  background:#FFFFFF;
   display:none;
   align-items:center;
   justify-content:space-between;
@@ -90,7 +98,7 @@ a{color:inherit;text-decoration:none;}
   height:calc(60px + env(safe-area-inset-bottom,20px));
   padding-bottom:env(safe-area-inset-bottom,20px);
   display:flex;align-items:flex-start;padding-top:6px;
-  background:#F6F6F1;
+  background:#FFFFFF;
   z-index:100;
 }
 .tab-btn{
@@ -104,10 +112,11 @@ a{color:inherit;text-decoration:none;}
   width:36px;height:28px;
   display:flex;align-items:center;justify-content:center;
   border-radius:10px;
-  transition:background .2s, transform .15s cubic-bezier(.34,1.56,.64,1);
+  background:transparent;
+  transition:transform .15s cubic-bezier(.34,1.56,.64,1);
 }
 .tab-icon-wrap.active{
-  background:rgba(26,26,26,.08);
+  background:transparent;
   transform:scale(1.08);
 }
 
